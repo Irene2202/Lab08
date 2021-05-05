@@ -7,7 +7,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import it.polito.tdp.extflightdelays.model.Adiacenza;
 import it.polito.tdp.extflightdelays.model.Airline;
 import it.polito.tdp.extflightdelays.model.Airport;
 import it.polito.tdp.extflightdelays.model.Flight;
@@ -89,6 +91,53 @@ public class ExtFlightDelaysDAO {
 			e.printStackTrace();
 			System.out.println("Errore connessione al database");
 			throw new RuntimeException("Error Connection Database");
+		}
+	}
+	
+	public void allAirport(Map<Integer, Airport> map) {
+		String sql="SELECT * FROM airports";
+		
+		Connection conn=ConnectDB.getConnection();
+		
+		try {
+			PreparedStatement st=conn.prepareStatement(sql);
+			ResultSet rs=st.executeQuery();
+			
+			while(rs.next()) {
+				if(!map.containsKey(rs.getInt("id"))) {
+					Airport air=new Airport(rs.getInt("id"), rs.getString("iata_code"), rs.getString("airport"),
+							rs.getString("city"), rs.getString("state"), rs.getString("country"), rs.getDouble("latitude"),
+							rs.getDouble("longitude"), rs.getDouble("timezone_offset"));
+					
+					map.put(air.getId(), air);
+				}
+			}
+			conn.close();
+			
+		} catch (SQLException e) {
+			throw new RuntimeException("ERRORE DB", e);
+		}
+	}
+	
+	public List<Adiacenza> getVoli(){
+		String sql="SELECT  origin_airport_id, destination_airport_id, AVG(distance) AS media "
+				+"FROM flights "
+				+"GROUP BY origin_airport_id, destination_airport_id";
+		
+		Connection conn=ConnectDB.getConnection();
+		List<Adiacenza> result=new ArrayList<>();
+		try {
+			PreparedStatement st=conn.prepareStatement(sql);
+			ResultSet rs=st.executeQuery();
+			
+			while(rs.next()) {
+				result.add(new Adiacenza(rs.getInt("origin_airport_id"), rs.getInt("destination_airport_id"), rs.getDouble("media")));
+				} 
+			
+			conn.close();
+			return result;
+		} catch (SQLException e) {
+			throw new RuntimeException("ERRORE DB", e);
 		}
 	}
 }
